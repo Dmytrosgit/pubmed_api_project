@@ -1,12 +1,13 @@
 from flask import Flask, request, jsonify
 import requests
+import os
 
-app = Flask(__name__)  # Це визначає додаток
+app = Flask(__name__)
 
 @app.route('/get_pubmed_summaries', methods=['GET'])
 def get_pubmed_summaries():
     query = request.args.get('query')
-    api_key = "5ce7485e546a830055ece8fbacdc9f0dc709"  # Замініть на свій реальний API ключ
+    api_key = os.getenv("PUBMED_API_KEY")  # Використовуємо змінну середовища
 
     # Перший запит для пошуку статей
     search_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
@@ -14,12 +15,11 @@ def get_pubmed_summaries():
         "db": "pubmed",
         "term": query,
         "usehistory": "y",
-        "retmode": "json",  # Додаємо цей параметр
+        "retmode": "json",
         "api_key": api_key
     }
     search_response = requests.get(search_url, params=search_params)
 
-    # Перевірка на успішність запиту
     if search_response.status_code != 200:
         return jsonify({"error": "Error in search request", "details": search_response.text}), 500
 
@@ -37,12 +37,11 @@ def get_pubmed_summaries():
         "query_key": query_key,
         "WebEnv": web_env,
         "retmax": 5,
-        "retmode": "json",  # Додаємо цей параметр
+        "retmode": "json",
         "api_key": api_key
     }
     summary_response = requests.get(summary_url, params=summary_params)
 
-    # Перевірка на успішність запиту
     if summary_response.status_code != 200:
         return jsonify({"error": "Error in summary request", "details": summary_response.text}), 500
 
