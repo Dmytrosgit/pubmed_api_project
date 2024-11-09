@@ -4,6 +4,7 @@ import os
 
 app = Flask(__name__)
 
+# Функція для пошуку статей з PubMed через ESearch
 def search_pubmed(query, api_key):
     search_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
     search_params = {
@@ -27,25 +28,28 @@ def search_pubmed(query, api_key):
     except ValueError:
         return None, {"error": "Failed to parse JSON from search response", "details": search_response.text}
 
-def fetch_summaries(query_key, web_env, api_key):
-    summary_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
-    summary_params = {
+# Функція для отримання коротких змістів статей з PubMed через EFetch
+def fetch_abstracts(query_key, web_env, api_key):
+    fetch_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+    fetch_params = {
         "db": "pubmed",
         "query_key": query_key,
         "WebEnv": web_env,
-        "retmax": 5,  # Можна налаштувати на більшу кількість, якщо потрібно
-        "retmode": "json",
+        "rettype": "abstract",  # Тип: абстракт (короткий зміст)
+        "retmode": "text",
         "api_key": api_key
     }
-    summary_response = requests.get(summary_url, params=summary_params)
-    if summary_response.status_code != 200:
-        return None, {"error": "Error in summary request", "details": summary_response.text}
+    fetch_response = requests.get(fetch_url, params=fetch_params)
+    if fetch_response.status_code != 200:
+        return None, {"error": "Error in fetch request", "details": fetch_response.text}
+    
     try:
-        summaries = summary_response.json()
-        return summaries, None
+        abstracts = fetch_response.text
+        return abstracts, None
     except ValueError:
-        return None, {"error": "Failed to parse JSON from summary response", "details": summary_response.text}
+        return None, {"error": "Failed to parse text from fetch response", "details": fetch_response.text}
 
+# Основний ендпоінт для запиту анотацій з PubMed
 @app.route('/get_pubmed_summaries', methods=['GET'])
 def get_pubmed_summaries():
     query = request.args.get('query')
@@ -56,12 +60,12 @@ def get_pubmed_summaries():
     if error:
         return jsonify(error), 500
 
-    # Другий запит для отримання анотацій
-    summaries, error = fetch_summaries(search_result["query_key"], search_result["web_env"], api_key)
+    # Другий запит для отримання коротких змістів через EFetch
+    abstracts, error = fetch_abstracts(search_result["query_key"], search_result["web_env"], api_key)
     if error:
         return jsonify(error), 500
 
-    return jsonify(summaries)
+    return jsonify({"abstracts": abstracts})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
