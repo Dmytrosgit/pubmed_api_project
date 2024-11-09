@@ -12,7 +12,7 @@ def search_pubmed(query, api_key):
         "term": query,
         "usehistory": "y",
         "retmode": "json",
-        "retmax": 10,  # Збільшуємо кількість результатів пошуку
+        "retmax": 5,  # Клькість результатів пошуку
         "api_key": api_key
     }
     search_response = requests.get(search_url, params=search_params)
